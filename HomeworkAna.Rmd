@@ -1,0 +1,248 @@
+> library(dplyr)
+> library(Seurat)
+Attaching SeuratObject
+> library(patchwork)
+
+> pbmc.data <- Read10X(data.dir = "C:/Users/Ana/Desktop/filtered_gene_bc_matrices/hg19")
+> pbmc <- CreateSeuratObject(counts = pbmc.data, project = "pbmc3k", min.cells = 4, min.features = 300)
+
+> pbmc
+An object of class Seurat 
+13029 features across 2685 samples within 1 assay 
+Active assay: RNA (13029 features, 0 variable features)
+
+> pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
+> # Visualize QC metrics as a violin plot
+> VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+> # FeatureScatter is typically used to visualize feature-feature relationships, but can be used
+> # for anything calculated by the object, i.e. columns in object metadata, PC scores etc.
+
+> plot1 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "percent.mt")
+> plot2 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+> plot1 + plot2
+> pbmc <- subset(pbmc, subset = nFeature_RNA > 200 & nFeature_RNA < 2000 & percent.mt < 5)
+
+> pbmc <- NormalizeData(pbmc, normalization.method = "LogNormalize", scale.factor = 10000)
+Performing log-normalization
+0%   10   20   30   40   50   60   70   80   90   100%
+[----|----|----|----|----|----|----|----|----|----|
+**************************************************|
+> pbmc <- NormalizeData(pbmc)
+Performing log-normalization
+0%   10   20   30   40   50   60   70   80   90   100%
+[----|----|----|----|----|----|----|----|----|----|
+**************************************************|
+> pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
+Calculating gene variances
+0%   10   20   30   40   50   60   70   80   90   100%
+[----|----|----|----|----|----|----|----|----|----|
+**************************************************|
+Calculating feature variances of standardized and clipped values
+0%   10   20   30   40   50   60   70   80   90   100%
+[----|----|----|----|----|----|----|----|----|----|
+**************************************************|
+> 
+> # Identify the 10 most highly variable genes
+> top10 <- head(VariableFeatures(pbmc), 10)
+> # plot variable features with and without labels
+> plot1 <- VariableFeaturePlot(pbmc)
+> plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
+When using repel, set xnudge and ynudge to 0 for optimal results
+> plot1 + plot2
+
+> pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
+Calculating gene variances
+0%   10   20   30   40   50   60   70   80   90   100%
+[----|----|----|----|----|----|----|----|----|----|
+**************************************************|
+Calculating feature variances of standardized and clipped values
+0%   10   20   30   40   50   60   70   80   90   100%
+[----|----|----|----|----|----|----|----|----|----|
+**************************************************|
+
+> # Identify the 10 most highly variable genes
+> top10 <- head(VariableFeatures(pbmc), 10)
+
+> # plot variable features with and without labels
+> plot1 <- VariableFeaturePlot(pbmc)
+> plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
+When using repel, set xnudge and ynudge to 0 for optimal results
+> plot1 + plot2
+> all.genes <- rownames(pbmc)
+> pbmc <- ScaleData(pbmc, features = all.genes)
+Centering and scaling data matrix
+  |====================================================| 100%
+> pbmc <- RunPCA(pbmc, features = VariableFeatures(object = pbmc))
+PC_ 1 
+Positive:  CST3, TYROBP, LST1, AIF1, FTL, FCN1, FTH1, LYZ, S100A9, TYMP 
+	   FCER1G, CFD, LGALS1, S100A8, LGALS2, CTSS, SERPINA1, IFITM3, SPI1, CFP 
+	   PSAP, IFI30, SAT1, COTL1, S100A11, NPC2, GRN, LGALS3, GSTP1, PYCARD 
+Negative:  MALAT1, LTB, IL32, IL7R, CD2, B2M, ACAP1, CD27, STK17A, CTSW 
+	   CD247, GIMAP5, AQP3, CCL5, SELL, TRAF3IP3, MAL, GZMA, CST7, ITM2A 
+	   MYC, HOPX, LDLRAP1, BEX2, GZMK, ETS1, ZAP70, OPTN, TNFAIP8, RIC3 
+PC_ 2 
+Positive:  CD79A, MS4A1, TCL1A, HLA-DQA1, HLA-DQB1, HLA-DRA, LINC00926, CD79B, HLA-DRB1, CD74 
+	   HLA-DMA, HLA-DPB1, HLA-DQA2, CD37, HLA-DRB5, HLA-DPA1, HLA-DMB, LTB, FCRLA, HVCN1 
+	   BLNK, P2RX5, IGLL5, IRF8, QRSL1, SWAP70, ARHGAP24, FCGR2B, SMIM14, PPP1R14A 
+Negative:  NKG7, PRF1, CST7, GZMB, GZMA, FGFBP2, GNLY, CTSW, B2M, SPON2 
+	   CCL4, GZMH, FCGR3A, CCL5, CD247, XCL2, CLIC3, AKR1C3, SRGN, HOPX 
+	   TTC38, APMAP, CTSC, IGFBP7, S100A4, ID2, ANXA1, XCL1, TPST2, ACTB 
+PC_ 3 
+Positive:  IL7R, VIM, TMSB4X, IL32, S100A6, S100A8, FYB, S100A4, AQP3, MAL 
+	   S100A9, S100A10, CD2, GIMAP4, ANXA1, CD27, CD14, LDLRAP1, RBP7, GIMAP5 
+	   LGALS2, S100A12, NDFIP1, LYZ, TRABD2A, S100A11, NELL2, FOLR3, MS4A6A, FCN1 
+Negative:  HLA-DQA1, CD79A, CD79B, HLA-DQB1, MS4A1, CD74, HLA-DPB1, HLA-DPA1, HLA-DRB1, TCL1A 
+	   HLA-DRA, HLA-DQA2, LINC00926, HLA-DRB5, HLA-DMA, HLA-DMB, HVCN1, FCRLA, GZMB, CD37 
+	   IRF8, PLAC8, BLNK, FGFBP2, FCGR3A, IGLL5, P2RX5, SWAP70, PRF1, SMIM14 
+PC_ 4 
+Positive:  PPBP, NRGN, PF4, SPARC, SDPR, MYL9, GNG11, GZMB, HIST1H2AC, RGS18 
+	   F13A1, CD9, ITGA2B, CCL5, NKG7, FGFBP2, GP9, TUBB1, GNLY, CST7 
+	   CCL4, CLU, S100A8, PRF1, GZMA, AP001189.4, TSC22D1, ACRBP, TMEM40, SPON2 
+Negative:  LTB, VIM, IL7R, CYTIP, AQP3, MS4A7, RP11-290F20.3, CKB, CORO1B, PTGES3 
+	   ANXA5, CD2, MAL, HMOX1, HN1, CD27, SIGLEC10, IL32, TRAF3IP3, PPA1 
+	   GDI2, LILRB2, TRADD, ABRACL, CCDC109B, EIF3H, IFITM2, NAAA, WARS, GIMAP4 
+PC_ 5 
+Positive:  PPBP, PF4, SDPR, SPARC, HIST1H2AC, GNG11, RGS18, NRGN, TUBB1, CLU 
+	   MYL9, MPP1, CA2, ACRBP, GP9, ITGA2B, PTCRA, F13A1, CD9, AP001189.4 
+	   TSC22D1, RP11-367G6.3, TREML1, TMEM40, MMD, CMTM5, GP1BA, C2orf88, MAP3K7CL, LY6G6F 
+Negative:  S100A8, LGALS2, S100A9, CD14, MS4A6A, S100A12, RBP7, FOLR3, CCL3, FGFBP2 
+	   NKG7, GSTP1, CCL4, GNLY, CYBA, CST7, GZMA, TYROBP, FCN1, ASGR1 
+	   GZMB, SPON2, PRF1, LYZ, GZMH, CTSW, MALAT1, FCGR1A, IL8, XCL2 
+> # Examine and visualize PCA results a few different ways
+> print(pbmc[["pca"]], dims = 1:5, nfeatures = 5)
+PC_ 1 
+Positive:  CST3, TYROBP, LST1, AIF1, FTL 
+Negative:  MALAT1, LTB, IL32, IL7R, CD2 
+PC_ 2 
+Positive:  CD79A, MS4A1, TCL1A, HLA-DQA1, HLA-DQB1 
+Negative:  NKG7, PRF1, CST7, GZMB, GZMA 
+PC_ 3 
+Positive:  IL7R, VIM, TMSB4X, IL32, S100A6 
+Negative:  HLA-DQA1, CD79A, CD79B, HLA-DQB1, MS4A1 
+PC_ 4 
+Positive:  PPBP, NRGN, PF4, SPARC, SDPR 
+Negative:  LTB, VIM, IL7R, CYTIP, AQP3 
+PC_ 5 
+Positive:  PPBP, PF4, SDPR, SPARC, HIST1H2AC 
+Negative:  S100A8, LGALS2, S100A9, CD14, MS4A6A 
+> DimPlot(pbmc, reduction = "pca")
+> DimHeatmap(pbmc, dims = 1:5, cells = 500, balanced = TRUE)
+> DimHeatmap(pbmc, dims = 1:5, cells = 200, balanced = TRUE)
+> pbmc <- JackStraw(pbmc, num.replicate = 100)
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=03m 43s
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=01s  
+> pbmc <- ScoreJackStraw(pbmc, dims = 1:20)
+> ElbowPlot(pbmc)
+> pbmc <- FindNeighbors(pbmc, dims = 1:10)
+Computing nearest neighbor graph
+Computing SNN
+> pbmc <- FindClusters(pbmc, resolution = 1)
+Modularity Optimizer version 1.3.0 by Ludo Waltman and Nees Jan van Eck
+
+Number of nodes: 2625
+Number of edges: 95514
+
+Running Louvain algorithm...
+0%   10   20   30   40   50   60   70   80   90   100%
+[----|----|----|----|----|----|----|----|----|----|
+**************************************************|
+Maximum modularity in 10 random starts: 0.8006
+Number of communities: 12
+Elapsed time: 0 seconds
+> # Look at cluster IDs of the first 5 cells
+> head(Idents(pbmc), 5)
+AAACATACAACCAC-1 AAACATTGAGCTAC-1 AAACATTGATCAGC-1 
+               4                2                1 
+AAACCGTGCTTCCG-1 AAACCGTGTATGCG-1 
+               8                6 
+Levels: 0 1 2 3 4 5 6 7 8 9 10 11
+> # If you haven't installed UMAP, you can do so via reticulate::py_install(packages =
+> # 'umap-learn')
+> pbmc <- RunUMAP(pbmc, dims = 1:10)
+
+18:32:56 UMAP embedding parameters a = 0.9922 b = 1.112
+18:32:57 Read 2625 rows and found 10 numeric columns
+18:32:57 Using Annoy for neighbor search, n_neighbors = 30
+18:32:57 Building Annoy index with metric = cosine, n_trees = 50
+0%   10   20   30   40   50   60   70   80   90   100%
+[----|----|----|----|----|----|----|----|----|----|
+**************************************************|
+18:32:57 Writing NN index file to temp file C:\Users\Ana\AppData\Local\Temp\RtmpeemfuB\file36e43a032ada
+18:32:57 Searching Annoy index using 1 thread, search_k = 3000
+18:32:58 Annoy recall = 100%
+18:32:58 Commencing smooth kNN distance calibration using 1 thread with target n_neighbors = 30
+18:32:58 Initializing from normalized Laplacian + noise (using irlba)
+18:32:59 Commencing optimization for 500 epochs, with 104956 positive edges
+Using method 'umap'
+0%   10   20   30   40   50   60   70   80   90   100%
+[----|----|----|----|----|----|----|----|----|----|
+**************************************************|
+18:33:05 Optimization finished
+> DimPlot(pbmc, reduction = "umap")
+> saveRDS(pbmc, file = "C:/Users/Ana/Desktop/Emil/Domaci 1/homeworkAna.rds")
+> pbmc.markers <- FindAllMarkers(pbmc, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+Calculating cluster 0
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=02s  
+Calculating cluster 1
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=02s  
+Calculating cluster 2
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=01s  
+Calculating cluster 3
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=03s  
+Calculating cluster 4
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=01s  
+Calculating cluster 5
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=05s  
+Calculating cluster 6
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=03s  
+Calculating cluster 7
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=02s  
+Calculating cluster 8
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=04s  
+Calculating cluster 9
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=02s  
+Calculating cluster 10
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=04s  
+Calculating cluster 11
+  |++++++++++++++++++++++++++++++++++++++++++++++++++| 100% elapsed=04s  
+
+> pbmc.markers %>%
++     group_by(cluster) %>%
++     slice_max(n = 2, order_by = avg_log2FC) %>%
++ print(n=30)
+# A tibble: 24 × 7
+# Groups:   cluster [12]
+       p_val avg_log2FC pct.1 pct.2 p_val_adj cluster gene    
+       <dbl>      <dbl> <dbl> <dbl>     <dbl> <fct>   <chr>   
+ 1 5.36e- 86      1.33  0.496 0.122 6.98e- 82 0       CCR7    
+ 2 1.03e- 50      1.08  0.376 0.113 1.34e- 46 0       LEF1    
+ 3 5.08e- 89      1.27  0.983 0.644 6.62e- 85 1       LTB     
+ 4 2.12e- 58      1.27  0.42  0.112 2.76e- 54 1       AQP3    
+ 5 0              4.31  0.936 0.042 0         2       CD79A   
+ 6 2.62e-267      3.58  0.621 0.022 3.41e-263 2       TCL1A   
+ 7 1.81e-295      4.94  0.991 0.171 2.35e-291 3       S100A8  
+ 8 8.46e-249      4.69  0.994 0.263 1.10e-244 3       S100A9  
+ 9 1.25e-  4      1.14  0.114 0.268 1   e+  0 4       NDUFA2  
+10 3.06e-  6      0.879 0.452 0.306 3.98e-  2 4       CCL5    
+11 4.57e-185      3.31  0.975 0.134 5.96e-181 5       FCGR3A  
+12 3.80e-126      3.10  1     0.315 4.95e-122 5       LST1    
+13 2.82e-192      5.42  0.962 0.132 3.68e-188 6       GNLY    
+14 4.40e-266      4.81  0.955 0.068 5.74e-262 6       GZMB    
+15 1.12e-187      3.18  0.846 0.071 1.46e-183 7       GZMK    
+16 1.59e- 85      2.15  0.979 0.277 2.07e- 81 7       CCL5    
+17 7.39e-118      2.44  0.985 0.172 9.63e-114 8       LGALS2  
+18 9.51e- 64      2.39  1     0.584 1.24e- 59 8       LYZ     
+19 3.84e-191      3.56  0.821 0.062 5.01e-187 9       GZMH    
+20 3.94e-102      2.97  1     0.279 5.14e- 98 9       CCL5    
+21 1.06e-257      3.92  0.853 0.01  1.38e-253 10      FCER1A  
+22 4.55e- 33      2.93  0.971 0.209 5.93e- 29 10      HLA-DQA1
+23 8.12e- 68      8.43  1     0.024 1.06e- 63 11      PPBP    
+24 3.52e-130      7.47  1     0.011 4.58e-126 11      PF4 
+
+> new.cluster.ids <- c("Naive CD4 T", "Memory CD4 T", "B", "CD14+ Mono", "CD8 T", "FCGR3A+ Mono",  "NK", "CD8 T", "CD14+ Mono", "CD8 T",
++                       "DC", "Platelet")
+> names(new.cluster.ids) <- levels(pbmc)
+> pbmc <- RenameIdents(pbmc, new.cluster.ids)
+> DimPlot(pbmc, reduction = "umap", label = TRUE, pt.size = 0.5) + NoLegend()
+
+> saveRDS(pbmc, file = "C:/Users/Ana/Desktop/Emil/Domaci 1.rds")
